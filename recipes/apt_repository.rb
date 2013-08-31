@@ -13,5 +13,11 @@ apt_repository "apt.postgresql.org" do
   action :add
 end
 
+# force apt-get update
+execute "apt-get-update" do
+  command "apt-get update"
+  ignore_failure true
+end
+
 # automatically get repository key updates
 package "pgdg-keyring"
