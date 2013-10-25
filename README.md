@@ -4,15 +4,16 @@
 
 Installs [PostgreSQL](http://www.postgresql.org), The world's most advanced open source database.
 
-This installs postgres 9.x from the [PostgreSQL backports for stable Ubuntu releases](https://launchpad.net/~pitti/+archive/postgresql).
+This installs postgres 9.x from the [PostgreSQL Apt Repository](https://wiki.postgresql.org/wiki/Apt).
 
 Currently supported versions:
 
 * `9.0`
 * `9.1`
 * `9.2`
+* `9.3`
 
-The default version is `9.2`.
+The default version is `9.3`.
 
 ## Requirements
 
@@ -26,7 +27,6 @@ The following platforms are supported by this cookbook, meaning that the recipes
 ### Cookbooks
 
 * [apt](http://community.opscode.com/cookbooks/apt)
-* [dpkg_autostart](http://community.opscode.com/cookbooks/dpkg_autostart)
 
 
 ## Recipes
@@ -61,13 +61,13 @@ This cookbook provides three definitions to create, alter, and delete users as w
 ```ruby
 # create a user
 pg_user "myuser" do
-  privileges :superuser => false, :createdb => false, :login => true
+  privileges superuser: false, createdb: false, login: true
   password "mypassword"
 end
 
 # create a user with an MD5-encrypted password
 pg_user "myuser" do
-  privileges :superuser => false, :createdb => false, :login => true
+  privileges superuser: false, createdb: false, login: true
   encrypted_password "667ff118ef6d196c96313aeaee7da519"
 end
 
@@ -193,7 +193,7 @@ distribution:
 # WARNING: If this version number is changed in your own recipes, the
 # FILE LOCATIONS (see below) attributes *must* also be overridden in
 # order to re-compute the paths with the correct version number.
-default["postgresql"]["version"]                         = "9.2"
+default["postgresql"]["version"]                         = "9.3"
 default["postgresql"]["apt_distribution"]                = node["lsb"]["codename"]
 
 default["postgresql"]["environment_variables"]           = {}
@@ -209,7 +209,7 @@ default["postgresql"]["initdb_options"]                  = "--locale=en_US.UTF-8
 #------------------------------------------------------------------------------
 # POSTGIS
 #------------------------------------------------------------------------------
-default["postgis"]["version"]                            = "1.5"
+default["postgis"]["version"]                            = "2.1"
 
 #------------------------------------------------------------------------------
 # FILE LOCATIONS
@@ -229,11 +229,16 @@ default["postgresql"]["listen_addresses"]                = "localhost"
 default["postgresql"]["port"]                            = 5432
 default["postgresql"]["max_connections"]                 = 100
 default["postgresql"]["superuser_reserved_connections"]  = 3
-default["postgresql"]["unix_socket_directory"]           = "/var/run/postgresql"
 default["postgresql"]["unix_socket_group"]               = ""
 default["postgresql"]["unix_socket_permissions"]         = "0777"
 default["postgresql"]["bonjour"]                         = "off"
 default["postgresql"]["bonjour_name"]                    = ""
+
+if Gem::Version.new(node["postgresql"]["version"]) >= Gem::Version.new("9.3")
+  default["postgresql"]["unix_socket_directories"]       = "/var/run/postgresql"
+else
+  default["postgresql"]["unix_socket_directory"]         = "/var/run/postgresql"
+end
 
 # security and authentication
 default["postgresql"]["authentication_timeout"]          = "1min"
@@ -549,6 +554,13 @@ default["postgresql"]["databases"]                       = []
 #------------------------------------------------------------------------------
 
 default["postgresql"]["custom_variable_classes"]         = ""
+
+
+#------------------------------------------------------------------------------
+# POSTGIS OPTIONS
+#------------------------------------------------------------------------------
+
+default["postgis"]["version"] = "2.0"
 ```
 
 
@@ -558,17 +570,17 @@ default["postgresql"]["custom_variable_classes"]         = ""
 * Add installation and configuration for the following packages:
 
 ```
-postgresql-{version}-debversion
 postgresql-{version}-ip4r
-postgresql-{version}-pljava-gcj
-postgresql-plperl-{version}
-postgresql-{version}-pllua
-postgresql-{version}-plproxy
-postgresql-plpython-{version}
-postgresql-{version}-plr
+postgresql-{version}-pgq3
 postgresql-{version}-plsh
-postgresql-pltcl-{version}
-postgresql-server-dev-{version}
+postgresql-{version}-pgmp
+postgresql-{version}-plproxy
+postgresql-{version}-plv8
+postgresql-{version}-repmgr
+postgresql-{version}-debversion
+postgresql-{version}-pgpool2
+postgresql-{version}-plr
+postgresql-{version}-slony1-2
 ```
 
 
@@ -612,6 +624,9 @@ Many thanks go to the following who have contributed to making this cookbook eve
     * create data/config dirs recursively
 * **[@sethcall](https://github.com/sethcall)**
     * allow 'lazy' evaluation of configs in the custom template
+* **[@jherdman](https://github.com/jherdman)**
+    * update README to include updated apt repository link
+    * add support for version 9.3
 
 
 ## License

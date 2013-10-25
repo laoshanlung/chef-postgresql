@@ -1,12 +1,9 @@
-define :pg_database_extensions, :action => :create do
+define :pg_database_extensions, action: :create do
 
   dbname = params[:name]
-  languages = [params[:languages] || []].flatten # Allow single value or array of values
-  extensions = [params[:extensions] || []].flatten
+  languages = Array(params[:languages]) # Allow single value or array of values
+  extensions = Array(params[:extensions])
   postgis = params[:postgis]
-
-  postgresql_version = node["postgresql"]["version"]
-  postgis_version = node["postgis"]["version"]
 
   case params[:action]
   when :create
@@ -14,7 +11,7 @@ define :pg_database_extensions, :action => :create do
     languages.each do |language|
       execute "createlang #{language} #{dbname}" do
         user "postgres"
-        not_if "psql -c 'SELECT lanname FROM pg_catalog.pg_language' #{dbname} | grep '^ #{language}$'", :user => "postgres"
+        not_if "psql -c 'SELECT lanname FROM pg_catalog.pg_language' #{dbname} | grep '^ #{language}$'", user: "postgres"
       end
     end
 
@@ -25,20 +22,10 @@ define :pg_database_extensions, :action => :create do
     end
 
     if postgis
-      include_recipe 'postgresql::postgis'
+      include_recipe "postgresql::postgis"
 
-      execute "psql -d #{dbname} -f /usr/share/postgresql/#{postgresql_version}/contrib/postgis-#{postgis_version}/postgis.sql" do
-        user "postgres"
-        not_if "psql -c \"SELECT proname FROM pg_catalog.pg_proc WHERE proname = 'st_area'\" #{dbname} | grep 'st_area$'", :user => "postgres"
-      end
-
-      execute "psql -d #{dbname} -f /usr/share/postgresql/#{postgresql_version}/contrib/postgis-#{postgis_version}/spatial_ref_sys.sql" do
-        user "postgres"
-        only_if "psql -c 'SELECT count(1) FROM spatial_ref_sys' #{dbname} | grep '0$'", :user => "postgres"
-      end
-
-      [:geometry_columns, :geography_columns, :spatial_ref_sys].each do |table|
-        execute "psql -c 'GRANT ALL ON #{table} TO PUBLIC' #{dbname}" do
+      %w[postgis postgis_topology].each do |ext|
+        execute "psql -c 'CREATE EXTENSION IF NOT EXISTS #{ext}' #{dbname}" do
           user "postgres"
         end
       end
@@ -49,7 +36,7 @@ define :pg_database_extensions, :action => :create do
     languages.each do |language|
       execute "droplang #{language} #{dbname}" do
         user "postgres"
-        only_if "psql -c 'SELECT lanname FROM pg_catalog.pg_language' #{dbname} | grep '^ #{language}$'", :user => "postgres"
+        only_if "psql -c 'SELECT lanname FROM pg_catalog.pg_language' #{dbname} | grep '^ #{language}$'", user: "postgres"
       end
     end
 
@@ -60,7 +47,11 @@ define :pg_database_extensions, :action => :create do
     end
 
     if postgis
-      Chef::Log.warn("Postgis support dropping isn't supported")
+      %w[postgis postgis_topology].each do |ext|
+        execute "psql -c 'DROP EXTENSION IF EXISTS #{ext}' #{dbname}" do
+          user "postgres"
+        end
+      end
     end
 
   end

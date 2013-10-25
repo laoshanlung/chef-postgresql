@@ -7,7 +7,7 @@
 # Copyright 2012-2013, Phil Cohen
 #
 
-default["postgresql"]["version"]                         = "9.2"
+default["postgresql"]["version"]                         = "9.3"
 default["postgresql"]["apt_distribution"]                = node["lsb"]["codename"]
 
 default["postgresql"]["environment_variables"]           = {}
@@ -44,11 +44,16 @@ default["postgresql"]["listen_addresses"]                = "localhost"
 default["postgresql"]["port"]                            = 5432
 default["postgresql"]["max_connections"]                 = 100
 default["postgresql"]["superuser_reserved_connections"]  = 3
-default["postgresql"]["unix_socket_directory"]           = "/var/run/postgresql"
 default["postgresql"]["unix_socket_group"]               = ""
 default["postgresql"]["unix_socket_permissions"]         = "0777"
 default["postgresql"]["bonjour"]                         = "off"
 default["postgresql"]["bonjour_name"]                    = ""
+
+if Gem::Version.new(node["postgresql"]["version"]) >= Gem::Version.new("9.3")
+  default["postgresql"]["unix_socket_directories"]       = "/var/run/postgresql"
+else
+  default["postgresql"]["unix_socket_directory"]         = "/var/run/postgresql"
+end
 
 # security and authentication
 default["postgresql"]["authentication_timeout"]          = "1min"
